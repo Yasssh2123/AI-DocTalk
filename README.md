@@ -50,7 +50,7 @@ The app automatically detects and uses GPU when available, showing "🖥️ GPU 
 ## 📁 Project Structure
 
 ```
-Digiqt_Assignment/
+AI-DocTalk/
 ├── app.py              # Main application
 ├── requirements.txt    # Dependencies
 ├── README.md          # This file
