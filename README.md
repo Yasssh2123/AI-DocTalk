@@ -45,21 +45,27 @@ For faster embedding processing on GPU-enabled systems:
 # Install PyTorch with CUDA support
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
+```
+
 The app automatically detects and uses GPU when available, showing "🖥️ GPU Embeddings" in the user profile.
 
 ## 📁 Project Structure
 
-```
+```text
 AI-DocTalk/
-├── app.py              # Main application
-├── requirements.txt    # Dependencies
-├── README.md          # This file
-├── .env               # API keys (create this)
-├── users.json         # User data (auto-created)
-└── user_data/         # User documents & embeddings (auto-created)
+│
+├── app.py                    # Main Streamlit application
+├── requirements.txt          # Python dependencies
+├── README.md                # Project documentation
+├── .env                     # Environment variables (create this)
+├── users.json              # User profiles (auto-created)
+│
+└── user_data/              # User documents and embeddings
     └── {username}/
-        ├── {pdf_name}_embeddings/  # FAISS embeddings
-        └── {pdf_name}_chat.json    # Chat history
+        ├── {pdf_name}_embeddings/
+        │   ├── index.faiss     # FAISS vector index
+        │   └── index.pkl       # Metadata
+        └── {pdf_name}_chat.json # Chat history
 ```
 
 ## 🎯 Usage Guide
