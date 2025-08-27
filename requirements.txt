@@ -1,0 +1,11 @@
+streamlit
+google-generativeai
+langchain-huggingface
+langchain-community
+faiss-cpu
+PyPDF2
+python-dotenv
+sentence-transformers
+
+# Optional: For GPU acceleration (uncomment if you have CUDA)
+# faiss-gpu
