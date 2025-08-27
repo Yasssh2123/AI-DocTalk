@@ -402,7 +402,7 @@ else:
             conversation_history = ""
             if len(st.session_state.messages) > 1:  
                 conversation_history = "\n\nPrevious conversation:\n"
-                for msg in st.session_state.messages[-6:]:  
+                for msg in st.session_state.messages[-50:]:  
                     if msg["role"] == "user":
                         conversation_history += f"User: {msg['content']}\n"
                     else:
