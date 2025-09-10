@@ -7,6 +7,7 @@ A powerful multi-user chatbot that allows users to upload PDF files and ask ques
 - **Multi-User Support**: Create profiles and manage separate document collections
 - **PDF Processing**: Upload and extract text from PDF documents
 - **RAG-based Q&A**: Intelligent question answering using Retrieval-Augmented Generation
+- **Privacy Options**: Choose between cloud (Gemini) or local (Ollama) AI models
 - **Duplicate Handling**: Smart duplicate detection with replace/update options
 - **Conversation Memory**: Maintains chat history across sessions
 - **GPU Acceleration**: Automatic GPU detection for faster embeddings (optional)
@@ -20,10 +21,20 @@ A powerful multi-user chatbot that allows users to upload PDF files and ask ques
 pip install -r requirements.txt
 ```
 
-### 2. Set up Gemini API Key
+### 2. Set up AI Model
+
+**Option A: Cloud AI (Gemini)**
 Create a `.env` file in the project directory:
 ```env
 GEMINI_API_KEY=your_actual_api_key_here
+```
+
+**Option B: Local AI (Ollama) - For Maximum Privacy**
+```bash
+# Install Ollama from https://ollama.com/download
+
+# Pull tinyllama model (default model used by the app)
+ollama pull tinyllama
 ```
 
 ### 3. Run the Application
@@ -33,9 +44,10 @@ streamlit run app.py
 
 ### 4. Start Using
 1. Create a user profile or select existing one
-2. Upload a PDF file using the sidebar
-3. Ask questions about the uploaded content
-4. Switch between different PDFs anytime
+2. Choose your AI model (Cloud/Local) in the sidebar
+3. Upload a PDF file using the sidebar
+4. Ask questions about the uploaded content
+5. Switch between different PDFs anytime
 
 ## 🔧 Optional GPU Setup
 
@@ -89,7 +101,9 @@ AI-DocTalk/
 ## 🛠️ Technical Details
 
 - **Frontend**: Streamlit web interface
-- **AI Model**: Google Gemini 1.5 Flash
+- **AI Models**: 
+  - 🌐 Google Gemini 1.5 Flash (Cloud)
+  - 🔒 Ollama (Local: tinyllama)
 - **Embeddings**: HuggingFace sentence-transformers/all-MiniLM-L6-v2
 - **Vector Store**: FAISS for similarity search
 - **Text Processing**: RecursiveCharacterTextSplitter for optimal chunking
@@ -97,21 +111,29 @@ AI-DocTalk/
 
 ## 🔒 Data Privacy
 
-- All data stored locally on your machine
-- No data sent to external services except Gemini API for responses
-- User documents and chat history remain private
+**Local Mode (Ollama):**
+- 🔒 **Complete Privacy**: All processing happens locally
+- 🚫 **No External Calls**: Zero data sent to external services
+- 💾 **Local Storage**: Documents and chat history stay on your machine
+
+**Cloud Mode (Gemini):**
+- 📁 **Local Storage**: Documents stored locally
+- 🌐 **API Calls**: Only questions and context sent to Gemini API
+- 🔐 **No Document Upload**: Full PDFs never leave your machine
 
 ## 🐛 Troubleshooting
 
 **"No text found in PDF"**: PDF might be image-based or corrupted
-**"Please set GEMINI_API_KEY"**: Check your .env file
+**"Please set GEMINI_API_KEY"**: Check your .env file (only needed for Cloud mode)
+**"Failed to connect to Ollama"**: Make sure Ollama is running and model is installed
 **"Failed to load embeddings"**: Try re-uploading the PDF
 **Slow processing**: Consider GPU setup for faster embeddings
 
 ## 📋 Requirements
 
 - Python 3.8+
-- Gemini API key
+- **For Cloud Mode**: Gemini API key
+- **For Local Mode**: Ollama installation
 - 2GB+ RAM for embeddings
 - Optional: CUDA-compatible GPU for acceleration
 

@@ -9,3 +9,6 @@ sentence-transformers
 
 # Optional: For GPU acceleration (uncomment if you have CUDA)
 # faiss-gpu
+
+# For local LLM support
+langchain-ollama

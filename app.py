@@ -1,5 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
+from langchain_community.llms import Ollama
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -15,6 +16,42 @@ st.set_page_config(
     page_icon="🤖",
     layout="wide"
 )
+
+# LLM Configuration
+def get_llm_model():
+    llm_choice = st.session_state.get('llm_choice', 'gemini')
+    
+    if llm_choice == 'ollama':
+        model_name = st.session_state.get('ollama_model', 'tinyllama')
+        try:
+            return Ollama(model=model_name)
+        except Exception as e:
+            st.error(f"Failed to connect to Ollama: {str(e)}")
+            return None
+    else:
+        # Gemini configuration
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            st.error("Please set GEMINI_API_KEY in your .env file")
+            return None
+        genai.configure(api_key=api_key)
+        return genai.GenerativeModel('gemini-1.5-flash')
+
+def generate_response(model, query, context):
+    prompt = f"""Based on the following context from the document, answer the question. If the answer cannot be found in the context, say so.
+
+Context: {context}
+
+Question: {query}
+
+Answer:"""
+    
+    if isinstance(model, Ollama):
+        return model.invoke(prompt)
+    else:
+        # Gemini model
+        response = model.generate_content(prompt)
+        return response.text
 
 _embeddings_cache = None
 
@@ -182,6 +219,23 @@ else:
         
         st.markdown("---")
         
+        # LLM Configuration
+        st.markdown("### 🧠 AI Model Settings")
+        llm_choice = st.selectbox(
+            "Choose AI Model:",
+            ["gemini", "ollama"],
+            format_func=lambda x: "🌐 Gemini (Cloud)" if x == "gemini" else "🔒 Ollama (Local)",
+            key="llm_choice"
+        )
+        
+        if llm_choice == "ollama":
+            st.session_state.ollama_model = 'tinyllama'
+            st.info("🔒 **Privacy Mode**: All data stays local\nUsing tinyllama model")
+        else:
+            st.info("🌐 **Cloud Mode**: Using Google Gemini API")
+        
+        st.markdown("---")
+        
         st.markdown("### 📚 Your Documents")
         
         if user_data["pdfs"]:
@@ -292,10 +346,17 @@ else:
             
             # Process the PDF (either new or replacement)
             if pdf_name not in users.get(st.session_state.user_name, {}).get("pdfs", {}) or st.session_state.get('replace_existing', False):
-                api_key = os.getenv("GEMINI_API_KEY")
+                # Check if we can proceed with processing
+                can_process = True
+                if st.session_state.get('llm_choice', 'gemini') == 'gemini':
+                    api_key = os.getenv("GEMINI_API_KEY")
+                    if not api_key:
+                        st.error("❌ Please set GEMINI_API_KEY in .env file")
+                        can_process = False
+                    else:
+                        genai.configure(api_key=api_key)
                 
-                if api_key:
-                    genai.configure(api_key=api_key)
+                if can_process:
                     
                     with st.spinner(f"Processing {pdf_name}..."):
                         try:
@@ -353,8 +414,6 @@ else:
                                 
                         except Exception as e:
                             st.error(f"❌ Error processing PDF: {str(e)}")
-                else:
-                    st.error("❌ Please set GEMINI_API_KEY in .env file")
 
     st.title("🤖 Personal Q&A Assistant")
     
@@ -381,34 +440,31 @@ else:
     # Chat input
     if st.session_state.current_pdf and st.session_state.vectorstore:
         if prompt := st.chat_input(f"Ask about {st.session_state.current_pdf}..."):
-            api_key = os.getenv("GEMINI_API_KEY")
-            
-            if not api_key:
-                st.error("❌ Please set GEMINI_API_KEY in .env file")
+            # Get the configured LLM model
+            model = get_llm_model()
+            if not model:
                 st.stop()
-            
-            # Configure Gemini
-            genai.configure(api_key=api_key)
             
             st.session_state.messages.append({"role": "user", "content": prompt})
             with st.chat_message("user"):
                 st.write(prompt)
             
+            # Get relevant context from the document
             docs = st.session_state.vectorstore.similarity_search(prompt, k=3)
             context = "\n".join([doc.page_content for doc in docs])
             
-            model = genai.GenerativeModel('gemini-1.5-flash-latest')
-            
+            # Build conversation history
             conversation_history = ""
             if len(st.session_state.messages) > 1:  
                 conversation_history = "\n\nPrevious conversation:\n"
-                for msg in st.session_state.messages[-50:]:  
+                for msg in st.session_state.messages[-10:]:  # Reduced for local models
                     if msg["role"] == "user":
                         conversation_history += f"User: {msg['content']}\n"
                     else:
                         conversation_history += f"Assistant: {msg['content']}\n"
             
-            system_prompt = f"""You are a helpful Q&A assistant for {st.session_state.user_name}. Answer questions based ONLY on the provided context from their uploaded PDF: {st.session_state.current_pdf}.
+            # Create the full prompt
+            full_prompt = f"""You are a helpful Q&A assistant for {st.session_state.user_name}. Answer questions based ONLY on the provided context from their uploaded PDF: {st.session_state.current_pdf}.
 
 RULES:
 1. Give short, clear answers (2-3 sentences max)
@@ -426,10 +482,11 @@ Current Question: {prompt}
 Answer:"""
             
             try:
-                response_obj = model.generate_content(system_prompt)
-                response = response_obj.text.strip()
+                with st.spinner("Thinking..."):
+                    response = generate_response(model, prompt, context + conversation_history)
+                response = response.strip()
             except Exception as e:
-                st.error(f"Error details: {str(e)}")
+                st.error(f"Error: {str(e)}")
                 response = "Sorry, I couldn't process your question. Please try again."
             
             st.session_state.messages.append({"role": "assistant", "content": response})
